@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capitalism Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+        }
+
+        h1 {
+            color: #ffd700;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        .left-panel, .right-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 260px;
+            max-width: 300px;
+        }
+
+        .center-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #gameCanvas {
+            border: 3px solid #444;
+            border-radius: 5px;
+            cursor: crosshair;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background: #0a0a0a;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .stat-box {
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75em;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .money-positive { color: #4ade80; }
+        .money-negative { color: #f87171; }
+
+        .class-selection {
+            margin-bottom: 15px;
+        }
+
+        .class-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 6px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            opacity: 1;
+        }
+
+        .class-btn:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .class-btn.selected {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 0 15px rgba(245, 87, 108, 0.5);
+        }
+
+        .class-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .class-name {
+            font-weight: bold;
+            font-size: 1em;
+        }
+
+        .class-desc {
+            font-size: 0.8em;
+            opacity: 0.9;
+            margin-top: 3px;
+        }
+
+        .city-selection {
+            margin-bottom: 15px;
+        }
+
+        .city-btn {
+            padding: 8px 16px;
+            margin: 4px;
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .city-btn:hover {
+            background: #444;
+        }
+
+        .city-btn.selected {
+            background: #4ade80;
+            color: #1a1a2e;
+            border-color: #4ade80;
+        }
+
+        .city-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .tooltip {
+            position: fixed;
+            background: rgba(0,0,0,0.95);
+            border: 1px solid #ffd700;
+            padding: 10px;
+            border-radius: 5px;
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 280px;
+            display: none;
+            font-size: 0.9em;
+            color: #fff;
+        }
+
+        .tooltip h4 {
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+
+        .tooltip p {
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin: 3px 0;
+        }
+
+        .event-log {
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+            padding: 10px;
+            height: 120px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.8em;
+        }
+
+        .event-log .event {
+            margin: 4px 0;
+            padding: 4px;
+            border-left: 3px solid #ffd700;
+            padding-left: 8px;
+        }
+
+        .event-log .event.warning {
+            border-left-color: #f87171;
+        }
+
+        .event-log .event.success {
+            border-left-color: #4ade80;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 0.75em;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            border: 1px solid #666;
+        }
+
+        button.action-btn {
+            padding: 12px 24px;
+            margin: 8px 4px;
+            background: #4ade80;
+            border: none;
+            border-radius: 5px;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+
+        button.action-btn:hover {
+            background: #22c55e;
+            transform: scale(1.05);
+        }
+
+        button.action-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+            text-align: center;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+        }
+
+        .modal-content h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            margin: 8px 0;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .info-box {
+            background: rgba(255,215,0,0.1);
+            border: 1px solid #ffd700;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.85em;
+        }
+
+        .aphg-box {
+            background: rgba(78, 222, 128, 0.1);
+            border: 1px solid #4ade80;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.85em;
+        }
+
+        .aphg-box strong {
+            color: #4ade80;
+        }
+
+        .controls {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .mini-map-container {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #miniMap {
+            border: 2px solid #444;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #0a0a0a;
+        }
+
+        .view-controls {
+            margin-top: 8px;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .view-btn {
+            padding: 6px 12px;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .view-btn:hover {
+            background: #444;
+        }
+
+        .view-btn.active {
+            background: #4ade80;
+            color: #1a1a2e;
+        }
+
+        .view-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        h3 {
+            margin-bottom: 8px;
+            color: #ffd700;
+            font-size: 1em;
+        }
+
+        #statusDetails p {
+            margin: 4px 0;
+            font-size: 0.85em;
+        }
+
+        #statusDetails span {
+            color: #4ade80;
+        }
+
+        .locked-overlay {
+            position: relative;
+        }
+
+        .locked-message {
+            background: rgba(220, 38, 38, 0.2);
+            border: 1px solid #dc2626;
+            color: #fca5a5;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .theory-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 0.8em;
+        }
+
+        .theory-box strong {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>Capitalism Simulator</h1>
+    <div class="subtitle">Profit, Compete, Survive</div>
+
+    <div class="game-container">
+        <div class="left-panel">
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-label">Capital</div>
+                    <div class="stat-value" id="moneyDisplay">$600</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Profit/Tick</div>
+                    <div class="stat-value" id="profitDisplay">$0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Time</div>
+                    <div class="stat-value" id="timeDisplay">Day</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Location</div>
+                    <div class="stat-value" id="locationDisplay">None</div>
+                </div>
+            </div>
+
+            <div class="city-selection" id="citySection">
+                <h3>Select City</h3>
+                <div>
+                    <button class="city-btn selected" id="btn-nyc">New York City</button>
+                    <button class="city-btn" id="btn-tokyo">Tokyo</button>
+                </div>
+                <div class="theory-box" id="cityTheory">
+                    <strong>Economic Concept:</strong> NYC has one dominant CBD (Manhattan) where land value peaks and decreases with distance.
+                </div>
+            </div>
+
+            <div class="class-selection" id="classSection">
+                <h3>Select Enterprise Type</h3>
+                <button class="class-btn selected" id="btn-coffee">
+                    <div class="class-name">Street Vendor</div>
+                    <div class="class-desc">Low overhead, $50 relocation. Survives anywhere with hustle.</div>
+                </button>
+                <button class="class-btn" id="btn-pc">
+                    <div class="class-name">Electronics Shop</div>
+                    <div class="class-desc">Medium overhead, $300 relocation. Needs tech corridors.</div>
+                </button>
+                <button class="class-btn" id="btn-luxury">
+                    <div class="class-name">Luxury Boutique</div>
+                    <div class="class-desc">High overhead, $800 relocation. Only viable in wealthy districts.</div>
+                </button>
+                <button class="class-btn" id="btn-konbini">
+                    <div class="class-name">Convenience Store</div>
+                    <div class="class-desc">Medium overhead, $200 relocation. Stable but thin margins.</div>
+                </button>
+            </div>
+
+            <div class="controls">
+                <button class="action-btn" id="btn-start">Start Business</button>
+                <button class="action-btn" id="btn-reset">Liquidate</button>
+            </div>
+
+            <div id="lockedMessage" class="locked-message" style="display:none;">
+                Business Locked - Trading Active
+            </div>
+
+            <div class="mini-map-container">
+                <h4>Market Overview</h4>
+                <canvas id="miniMap" width="200" height="200"></canvas>
+                <div class="view-controls">
+                    <button class="view-btn active" id="view-normal">Standard</button>
+                    <button class="view-btn" id="view-traffic">Demand</button>
+                    <button class="view-btn" id="view-rent">Overhead</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="center-panel">
+            <canvas id="gameCanvas" width="700" height="700"></canvas>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color" style="background:#ff6b6b"></div>You</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ffd700"></div>Manhattan/Hub</div>
+                <div class="legend-item"><div class="legend-color" style="background:#4ecdc4"></div>High Demand</div>
+                <div class="legend-item"><div class="legend-color" style="background:#45b7d1"></div>Med Demand</div>
+                <div class="legend-item"><div class="legend-color" style="background:#2c3e50"></div>Low Demand</div>
+                <div class="legend-item"><div class="legend-color" style="background:#1a1a1a;border:2px solid #444"></div>Restricted</div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <h3>Market Economics</h3>
+            <div class="aphg-box">
+                <strong>Current Lesson:</strong> <span id="currentTopic">Location Theory</span>
+                <p id="topicExplanation" style="margin-top:5px;font-size:0.9em;">
+                    Land value peaks at Manhattan and decreases with distance. High-overhead enterprises can only survive where customer density justifies the cost.
+                </p>
+            </div>
+
+            <div class="aphg-box">
+                <strong>Profit Formula:</strong>
+                <p style="font-family:monospace;background:rgba(0,0,0,0.3);padding:5px;border-radius:3px;margin-top:5px;">
+                    Profit = (Traffic x Spending) - Rent
+                </p>
+                <p style="font-size:0.85em;margin-top:5px;">
+                    This models how firms compete for accessible land based on revenue potential.
+                </p>
+            </div>
+
+            <h3>Transaction Log</h3>
+            <div class="event-log" id="eventLog">
+                <div class="event">Welcome to Capitalism Simulator. Select your city and enterprise type.</div>
+            </div>
+
+            <div class="info-box" id="infoBox">
+                <strong>How to Profit:</strong><br>
+                1. Study the city structure (NYC=centralized, Tokyo=distributed)<br>
+                2. Choose enterprise matching your strategy<br>
+                3. Click Start Business<br>
+                4. Click grid to open shop - location is everything<br>
+                5. Adapt to market cycles and disruptions
+            </div>
+
+            <h3 style="margin-top:15px">Live Metrics</h3>
+            <div id="statusDetails">
+                <p><strong>City:</strong> <span id="statusCity">New York City</span></p>
+                <p><strong>Enterprise:</strong> <span id="statusBusiness">Street Vendor</span></p>
+                <p><strong>Coordinates:</strong> <span id="statusPosition">Not established</span></p>
+                <p><strong>Overhead:</strong> <span id="statusRent">$0/tick</span></p>
+                <p><strong>Foot Traffic:</strong> <span id="statusTraffic">0 customers</span></p>
+                <p><strong>Net Revenue:</strong> <span id="statusProfit">$0/tick</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <div class="modal" id="gameModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Game Over</h2>
+            <p id="modalMessage">Message here</p>
+            <button class="action-btn" id="btn-modal-close">Continue</button>
+        </div>
+    </div>
+
+    <script>
+        // Game Constants - HARDER DIFFICULTY
+        const GRID_SIZE = 100;
+        const CELL_SIZE = 7;
+        const MINI_MAP_SIZE = 200;
+        const MINI_CELL_SIZE = MINI_MAP_SIZE / GRID_SIZE;
+        const WIN_AMOUNT = 100000;
+        const STARTING_MONEY = 600; // Reduced from 750
+        const TICK_RATE = 2000;
+        const DAY_NIGHT_CYCLE = 22; // Faster than 25
+        const EVENT_INTERVAL = 45; // More frequent than 50
+
+        // Business Classes - HARDER
+        const BUSINESS_CLASSES = {
+            coffee: {
+                name: 'Street Vendor',
+                rentSensitivity: 0.75, // Increased from 0.6
+                moveCost: 50,
+                multiplier: 0.9, // Reduced from 1.0
+                color: '#8B4513',
+                description: 'Low overhead, survives anywhere with hustle.',
+                aphgConcept: 'Informal economy - low barrier to entry, marginal spaces'
+            },
+            pc: {
+                name: 'Electronics Shop',
+                rentSensitivity: 1.15, // Increased from 1.0
+                moveCost: 300,
+                multiplier: 1.3, // Reduced from 1.4
+                color: '#00CED1',
+                description: 'Needs tech corridors. High overhead risk.',
+                specialHub: 'akihabara',
+                aphgConcept: 'Specialized economic zones - agglomeration economies'
+            },
+            luxury: {
+                name: 'Luxury Boutique',
+                rentSensitivity: 2.3, // Increased from 2.0
+                moveCost: 800,
+                multiplier: 2.5, // Reduced from 2.8
+                color: '#FFD700',
+                description: 'Only viable in wealthy districts. High risk/reward.',
+                specialHubs: ['ginza', 'shibuya'],
+                aphgConcept: 'High-order goods - threshold population requirements'
+            },
+            konbini: {
+                name: 'Convenience Store',
+                rentSensitivity: 1.0, // Increased from 0.9
+                moveCost: 200,
+                multiplier: 0.7, // Reduced from 0.75
+                color: '#FF6B6B',
+                description: 'Stable but thin margins. Reliable but slow growth.',
+                stable: true,
+                aphgConcept: 'Convenience services - depend on population density'
+            }
+        };
+
+        // Tokyo Hubs
+        const TOKYO_HUBS = {
+            shinjuku: { x: 20, y: 20, name: 'Shinjuku', traffic: 90, spending: 1.0, color: '#FF6B6B' },
+            shibuya: { x: 20, y: 80, name: 'Shibuya', traffic: 75, spending: 1.0, multiplier: { clothing: 2 }, color: '#4ECDC4' },
+            ginza: { x: 50, y: 50, name: 'Ginza', traffic: 35, spending: 5.0, color: '#FFD700' },
+            akihabara: { x: 80, y: 20, name: 'Akihabara', traffic: 55, spending: 1.0, rangeBonus: 3, color: '#00CED1' },
+            marunouchi: { x: 80, y: 80, name: 'Marunouchi', traffic: 85, spending: 1.5, dayOnly: true, color: '#95E1D3' },
+            roppongi: { x: 35, y: 65, name: 'Roppongi', traffic: 65, spending: 1.2, nightOnly: true, color: '#F38181' },
+            ikebukuro: { x: 65, y: 35, name: 'Ikebukuro', traffic: 45, spending: 1.0, lowRent: true, color: '#AA96DA' }
+        };
+
+        // Game State
+        let gameState = {
+            money: STARTING_MONEY,
+            selectedCity: 'NYC',
+            selectedClass: 'coffee',
+            playerPosition: null,
+            isPlaying: false,
+            tick: 0,
+            isDay: true,
+            currentProfit: 0,
+            viewMode: 'normal',
+            events: [],
+            activeEvent: null,
+            tempHubs: [],
+            tickInterval: null,
+            consecutiveLosses: 0
+        };
+
+        // Canvas Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const miniMapCanvas = document.getElementById('miniMap');
+        const miniMapCtx = miniMapCanvas.getContext('2d');
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing game...');
+            setupEventListeners();
+            drawGrid();
+            drawMiniMap();
+            updateDisplay();
+            updateAPHGContent();
+            console.log('Game initialized successfully');
+        });
+
+        function setupEventListeners() {
+            console.log('Setting up event listeners...');
+
+            // City buttons
+            document.getElementById('btn-nyc').addEventListener('click', function() { 
+                if (!gameState.isPlaying) selectCity('NYC'); 
+            });
+            document.getElementById('btn-tokyo').addEventListener('click', function() { 
+                if (!gameState.isPlaying) selectCity('Tokyo'); 
+            });
+
+            // Class buttons
+            document.getElementById('btn-coffee').addEventListener('click', function() { 
+                if (!gameState.isPlaying) selectClass('coffee'); 
+            });
+            document.getElementById('btn-pc').addEventListener('click', function() { 
+                if (!gameState.isPlaying) selectClass('pc'); 
+            });
+            document.getElementById('btn-luxury').addEventListener('click', function() { 
+                if (!gameState.isPlaying) selectClass('luxury'); 
+            });
+            document.getElementById('btn-konbini').addEventListener('click', function() { 
+                if (!gameState.isPlaying) selectClass('konbini'); 
+            });
+
+            // Action buttons
+            document.getElementById('btn-start').addEventListener('click', startGame);
+            document.getElementById('btn-reset').addEventListener('click', resetGame);
+            document.getElementById('btn-modal-close').addEventListener('click', closeModal);
+
+            // View buttons
+            document.getElementById('view-normal').addEventListener('click', function() { setViewMode('normal'); });
+            document.getElementById('view-traffic').addEventListener('click', function() { setViewMode('traffic'); });
+            document.getElementById('view-rent').addEventListener('click', function() { setViewMode('rent'); });
+
+            // Canvas interactions
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('mouseleave', hideTooltip);
+            miniMapCanvas.addEventListener('click', handleMiniMapClick);
+
+            console.log('Event listeners attached');
+        }
+
+        function lockOptions() {
+            const buttons = document.querySelectorAll('.city-btn, .class-btn');
+            buttons.forEach(function(btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            });
+
+            document.getElementById('lockedMessage').style.display = 'block';
+        }
+
+        function unlockOptions() {
+            const buttons = document.querySelectorAll('.city-btn, .class-btn');
+            buttons.forEach(function(btn) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            });
+
+            document.getElementById('lockedMessage').style.display = 'none';
+        }
+
+        function updateAPHGContent() {
+            const business = BUSINESS_CLASSES[gameState.selectedClass];
+
+            if (gameState.selectedCity === 'NYC') {
+                document.getElementById('currentTopic').textContent = 'Location Theory (NYC - Monocentric)';
+                document.getElementById('topicExplanation').innerHTML = 
+                    'Manhattan is the central business district. Land value peaks there and decreases with distance. ' +
+                    'High-overhead enterprises can only survive where customer density justifies the cost.';
+            } else {
+                document.getElementById('currentTopic').textContent = 'Polycentric Model (Tokyo)';
+                document.getElementById('topicExplanation').innerHTML = 
+                    'Tokyo has multiple commercial centers (Shinjuku, Shibuya, Ginza, Akihabara). ' +
+                    'Each district has different specializations. Enterprises must locate near their target market.';
+            }
+
+            document.getElementById('statusCity').textContent = gameState.selectedCity === 'NYC' ? 'New York City' : 'Tokyo';
+            document.getElementById('statusBusiness').textContent = business.name + ' - ' + business.aphgConcept;
+        }
+
+        function selectCity(city) {
+            gameState.selectedCity = city;
+            document.querySelectorAll('.city-btn').forEach(function(btn) { btn.classList.remove('selected'); });
+            document.getElementById(city === 'NYC' ? 'btn-nyc' : 'btn-tokyo').classList.add('selected');
+
+            const theoryBox = document.getElementById('cityTheory');
+            if (city === 'NYC') {
+                theoryBox.innerHTML = '<strong>Economic Concept:</strong> NYC has one dominant CBD (Manhattan) where land value peaks and decreases with distance (Bid-Rent Theory).';
+            } else {
+                theoryBox.innerHTML = '<strong>Economic Concept:</strong> Tokyo has multiple sub-centers (Shinjuku, Shibuya, Ginza, Akihabara, etc.) each with different economic functions.';
+            }
+
+            updateAPHGContent();
+            logEvent('Selected ' + (city === 'NYC' ? 'New York City (Manhattan CBD)' : 'Tokyo (Polycentric)') + '.');
+            drawGrid();
+            drawMiniMap();
+        }
+
+        function selectClass(className) {
+            gameState.selectedClass = className;
+            document.querySelectorAll('.class-btn').forEach(function(btn) { btn.classList.remove('selected'); });
+            document.getElementById('btn-' + className).classList.add('selected');
+
+            const business = BUSINESS_CLASSES[className];
+            logEvent('Selected ' + business.name + ': ' + business.aphgConcept);
+            updateAPHGContent();
+        }
+
+        function setViewMode(mode) {
+            gameState.viewMode = mode;
+            document.querySelectorAll('.view-btn').forEach(function(btn) { btn.classList.remove('active'); });
+            document.getElementById('view-' + mode).classList.add('active');
+            drawGrid();
+        }
+
+        function getDistance(x1, y1, x2, y2) {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
+
+        function getNearestHub(x, y) {
+            let nearest = null;
+            let minDist = Infinity;
+
+            for (let hubKey in TOKYO_HUBS) {
+                const hub = TOKYO_HUBS[hubKey];
+                const dist = getDistance(x, y, hub.x, hub.y);
+
+                const business = BUSINESS_CLASSES[gameState.selectedClass];
+                let effectiveDist = dist;
+                if (business.specialHub === 'akihabara' && hubKey === 'akihabara') {
+                    effectiveDist = dist / 3;
+                }
+
+                if (effectiveDist < minDist) {
+                    minDist = effectiveDist;
+                    nearest = Object.assign({}, hub, { key: hubKey, distance: dist });
+                }
+            }
+
+            for (let i = 0; i < gameState.tempHubs.length; i++) {
+                const tempHub = gameState.tempHubs[i];
+                const dist = getDistance(x, y, tempHub.x, tempHub.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = Object.assign({}, tempHub, { key: 'temp', distance: dist });
+                }
+            }
+
+            return nearest;
+        }
+
+        function getTraffic(x, y) {
+            if (gameState.selectedCity === 'NYC') {
+                const centerX = 50, centerY = 50;
+                const dist = getDistance(x, y, centerX, centerY);
+                const maxDist = getDistance(0, 0, 50, 50);
+                // Steeper decay for challenge
+                const baseTraffic = 100 * Math.pow(1 - dist / maxDist, 1.3);
+                return Math.max(4, baseTraffic);
+            } else {
+                const hub = getNearestHub(x, y);
+                if (!hub) return 4;
+
+                if (hub.dayOnly && !gameState.isDay) return 4;
+                if (hub.nightOnly && gameState.isDay) return 4;
+
+                // Steeper distance decay
+                const baseTraffic = hub.traffic / Math.pow(hub.distance + 1, 1.15);
+                return Math.max(4, baseTraffic);
+            }
+        }
+
+        function getRent(x, y) {
+            let baseRent;
+
+            if (gameState.selectedCity === 'NYC') {
+                const centerX = 50, centerY = 50;
+                const dist = getDistance(x, y, centerX, centerY);
+                const maxDist = getDistance(0, 0, 50, 50);
+                // Higher rent curve
+                baseRent = 110 * Math.pow(1 - dist / (maxDist + 0.5), 0.9);
+            } else {
+                const hub = getNearestHub(x, y);
+                if (!hub) return 12;
+
+                let rentMultiplier = hub.lowRent ? 0.55 : 1.0;
+                baseRent = (hub.traffic * hub.spending * rentMultiplier * 1.2) / (hub.distance + 0.5);
+            }
+
+            if (gameState.activeEvent === 'rentHike') {
+                baseRent *= 1.3; // 30% rent hike
+            }
+
+            return Math.max(6, baseRent);
+        }
+
+        function getSpendingPower(x, y) {
+            if (gameState.selectedCity === 'NYC') {
+                return 1.0;
+            } else {
+                const hub = getNearestHub(x, y);
+                if (!hub) return 1.0;
+
+                let spending = hub.spending;
+                const business = BUSINESS_CLASSES[gameState.selectedClass];
+                if (business.specialHubs && business.specialHubs.indexOf(hub.key) !== -1) {
+                    if (hub.key === 'shibuya') {
+                        spending *= 2;
+                    }
+                }
+
+                return spending;
+            }
+        }
+
+        function calculateProfit(x, y) {
+            const business = BUSINESS_CLASSES[gameState.selectedClass];
+            const traffic = getTraffic(x, y);
+            const spending = getSpendingPower(x, y);
+            const rent = getRent(x, y);
+
+            let effectiveTraffic = traffic;
+            if (gameState.activeEvent === 'rainstorm') {
+                const hub = getNearestHub(x, y);
+                if (hub && hub.distance > 3) {
+                    effectiveTraffic *= 0.4; // 60% reduction
+                }
+            }
+
+            // Competition event reduces traffic
+            if (gameState.activeEvent === 'competition') {
+                effectiveTraffic *= 0.75; // 25% reduction
+            }
+
+            const grossProfit = effectiveTraffic * spending * business.multiplier;
+            const netProfit = grossProfit - (rent * business.rentSensitivity);
+
+            return {
+                gross: grossProfit,
+                rent: rent * business.rentSensitivity,
+                net: netProfit,
+                traffic: effectiveTraffic,
+                spending: spending
+            };
+        }
+
+        function isPark(x, y) {
+            if (gameState.selectedCity !== 'Tokyo') return false;
+            return x >= 45 && x <= 55 && y >= 45 && y <= 55;
+        }
+
+        function getTileColor(x, y) {
+            if (isPark(x, y)) return '#1a1a1a';
+
+            if (gameState.selectedCity === 'Tokyo') {
+                for (let key in TOKYO_HUBS) {
+                    const hub = TOKYO_HUBS[key];
+                    if (Math.abs(x - hub.x) <= 1 && Math.abs(y - hub.y) <= 1) {
+                        return hub.color;
+                    }
+                }
+            } else {
+                // Manhattan CBD at center
+                if (Math.abs(x - 50) <= 1 && Math.abs(y - 50) <= 1) {
+                    return '#ffd700';
+                }
+            }
+
+            for (let i = 0; i < gameState.tempHubs.length; i++) {
+                const hub = gameState.tempHubs[i];
+                if (Math.abs(x - hub.x) <= 1 && Math.abs(y - hub.y) <= 1) {
+                    return '#ff00ff';
+                }
+            }
+
+            if (gameState.viewMode === 'traffic') {
+                const traffic = getTraffic(x, y);
+                const intensity = Math.min(255, Math.floor(traffic * 2.55));
+                return 'rgb(' + (255-intensity) + ', ' + (255-intensity) + ', 255)';
+            } else if (gameState.viewMode === 'rent') {
+                const rent = getRent(x, y);
+                const intensity = Math.min(255, Math.floor(rent * 1.5));
+                return 'rgb(255, ' + (255-intensity) + ', ' + (255-intensity) + ')';
+            } else {
+                const traffic = getTraffic(x, y);
+                if (traffic > 50) return '#4ecdc4';
+                if (traffic > 25) return '#45b7d1';
+                if (traffic > 8) return '#2c3e50';
+                return '#1a1a2e';
+            }
+        }
+
+        function drawGrid() {
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    const color = getTileColor(x, y);
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+
+                    ctx.strokeStyle = '#222';
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                }
+            }
+
+            if (gameState.playerPosition) {
+                const px = gameState.playerPosition.x;
+                const py = gameState.playerPosition.y;
+                ctx.fillStyle = BUSINESS_CLASSES[gameState.selectedClass].color;
+                ctx.fillRect(px * CELL_SIZE, py * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(px * CELL_SIZE - 1, py * CELL_SIZE - 1, CELL_SIZE + 2, CELL_SIZE + 2);
+            }
+
+            if (!gameState.isDay) {
+                ctx.fillStyle = 'rgba(0, 0, 50, 0.3)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Draw Manhattan label for NYC
+            if (gameState.selectedCity === 'NYC') {
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px Arial';
+                ctx.fillText('Manhattan', 50 * CELL_SIZE - 25, 50 * CELL_SIZE - 10);
+            }
+        }
+
+        function drawMiniMap() {
+            miniMapCtx.fillStyle = '#0a0a0a';
+            miniMapCtx.fillRect(0, 0, MINI_MAP_SIZE, MINI_MAP_SIZE);
+
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    const color = getTileColor(x, y);
+                    miniMapCtx.fillStyle = color;
+                    miniMapCtx.fillRect(x * MINI_CELL_SIZE, y * MINI_CELL_SIZE, MINI_CELL_SIZE, MINI_CELL_SIZE);
+                }
+            }
+
+            if (gameState.playerPosition) {
+                miniMapCtx.fillStyle = '#fff';
+                miniMapCtx.fillRect(
+                    gameState.playerPosition.x * MINI_CELL_SIZE - 1,
+                    gameState.playerPosition.y * MINI_CELL_SIZE - 1,
+                    4, 4
+                );
+            }
+        }
+
+        function handleMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+            const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+
+            if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+                showTooltip(e.clientX, e.clientY, x, y);
+            } else {
+                hideTooltip();
+            }
+        }
+
+        function showTooltip(mouseX, mouseY, x, y) {
+            const tooltip = document.getElementById('tooltip');
+
+            if (isPark(x, y)) {
+                tooltip.innerHTML = '<h4>Imperial Palace (Tokyo)</h4><p>Restricted zone. No commercial activity permitted.</p>';
+            } else {
+                const traffic = getTraffic(x, y).toFixed(1);
+                const rent = getRent(x, y).toFixed(2);
+                const spending = getSpendingPower(x, y).toFixed(1);
+                const profit = calculateProfit(x, y);
+
+                let hubInfo = '';
+                let locationNote = '';
+
+                if (gameState.selectedCity === 'Tokyo') {
+                    const hub = getNearestHub(x, y);
+                    if (hub) {
+                        hubInfo = '<p><strong>Nearest Hub:</strong> ' + hub.name + ' (' + hub.distance.toFixed(1) + ' tiles)</p>';
+                    }
+                } else {
+                    const dist = getDistance(x, y, 50, 50).toFixed(1);
+                    const isManhattan = (x >= 48 && x <= 52 && y >= 48 && y <= 52);
+                    if (isManhattan) {
+                        hubInfo = '<p><strong>Location:</strong> Manhattan CBD</p>';
+                        locationNote = '<p style="color:#ffd700;font-size:0.85em;"><strong>Premium Location:</strong> Highest rent, maximum traffic</p>';
+                    } else {
+                        hubInfo = '<p><strong>Distance from Manhattan:</strong> ' + dist + ' tiles</p>';
+                        if (dist < 15) {
+                            locationNote = '<p style="color:#60a5fa;font-size:0.85em;">Inner borough - high accessibility, high rent</p>';
+                        } else if (dist > 35) {
+                            locationNote = '<p style="color:#60a5fa;font-size:0.85em;">Outer borough - lower rent, reduced traffic</p>';
+                        }
+                    }
+                }
+
+                let html = '<h4>Position (' + x + ', ' + y + ')</h4>';
+                html += '<p><strong>Customer Traffic:</strong> ' + traffic + '</p>';
+                html += '<p><strong>Spending Power:</strong> ' + spending + 'x</p>';
+                html += '<p><strong>Overhead (Rent):</strong> $' + rent + '/tick</p>';
+                html += hubInfo;
+                html += locationNote;
+                html += '<p style="margin-top:8px;border-top:1px solid #444;padding-top:8px;">';
+                html += '<strong>Projected Profit:</strong> ';
+                html += '<span style="color:' + (profit.net > 0 ? '#4ade80' : '#f87171') + '">$' + profit.net.toFixed(2) + '</span>/tick';
+                html += '</p>';
+
+                if (rent > 50 && !locationNote) {
+                    html += '<div style="margin-top:8px;padding:5px;background:rgba(255,215,0,0.1);border-radius:3px;font-size:0.85em;">';
+                    html += '<strong>Location Theory:</strong> High rent areas require high-margin business models to profit.';
+                    html += '</div>';
+                }
+
+                tooltip.innerHTML = html;
+            }
+
+            tooltip.style.display = 'block';
+            tooltip.style.left = (mouseX + 15) + 'px';
+            tooltip.style.top = (mouseY + 15) + 'px';
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+
+        function handleCanvasClick(e) {
+            if (!gameState.isPlaying) {
+                logEvent('Press Start Business first!', 'warning');
+                return;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+            const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+
+            if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return;
+
+            if (isPark(x, y)) {
+                logEvent('Cannot operate in Imperial Palace!', 'warning');
+                return;
+            }
+
+            const business = BUSINESS_CLASSES[gameState.selectedClass];
+
+            if (gameState.playerPosition) {
+                const moveCost = business.moveCost;
+                if (gameState.money < moveCost) {
+                    logEvent('Insufficient capital! Need $' + moveCost, 'warning');
+                    return;
+                }
+
+                gameState.money -= moveCost;
+                const locationName = (gameState.selectedCity === 'NYC' && x >= 48 && x <= 52 && y >= 48 && y <= 52) ? 'Manhattan' : '(' + x + ', ' + y + ')';
+                logEvent('Relocated to ' + locationName + '. Cost: $' + moveCost, 'success');
+            } else {
+                const locationName = (gameState.selectedCity === 'NYC' && x >= 48 && x <= 52 && y >= 48 && y <= 52) ? 'Manhattan' : '(' + x + ', ' + y + ')';
+                logEvent('Established business at ' + locationName, 'success');
+            }
+
+            gameState.playerPosition = { x: x, y: y };
+            gameState.consecutiveLosses = 0;
+            updateDisplay();
+            drawGrid();
+            drawMiniMap();
+        }
+
+        function handleMiniMapClick(e) {
+            const rect = miniMapCanvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / MINI_CELL_SIZE);
+            const y = Math.floor((e.clientY - rect.top) / MINI_CELL_SIZE);
+
+            logEvent('Market view: (' + x + ', ' + y + '). Click main map to establish there.');
+        }
+
+        function startGame() {
+            console.log('Start game clicked');
+            if (gameState.isPlaying) {
+                logEvent('Business already operating!', 'warning');
+                return;
+            }
+
+            gameState.isPlaying = true;
+            gameState.money = STARTING_MONEY;
+            gameState.playerPosition = null;
+            gameState.tick = 0;
+            gameState.isDay = true;
+            gameState.events = [];
+            gameState.tempHubs = [];
+            gameState.activeEvent = null;
+            gameState.consecutiveLosses = 0;
+
+            lockOptions();
+
+            logEvent('=== BUSINESS ESTABLISHED ===', 'success');
+            logEvent('Starting capital: $' + STARTING_MONEY + ' | Target: $' + WIN_AMOUNT);
+            logEvent('Market: ' + (gameState.selectedCity === 'NYC' ? 'NYC (Manhattan CBD)' : 'Tokyo (Polycentric)'));
+            logEvent('Enterprise: ' + BUSINESS_CLASSES[gameState.selectedClass].name);
+
+            updateDisplay();
+            drawGrid();
+
+            if (gameState.tickInterval) {
+                clearInterval(gameState.tickInterval);
+            }
+
+            gameState.tickInterval = setInterval(gameTick, TICK_RATE);
+            console.log('Game started, interval set');
+        }
+
+        function resetGame() {
+            console.log('Reset clicked');
+            gameState.isPlaying = false;
+            gameState.money = STARTING_MONEY;
+            gameState.playerPosition = null;
+            gameState.tick = 0;
+            gameState.isDay = true;
+            gameState.events = [];
+            gameState.tempHubs = [];
+            gameState.activeEvent = null;
+            gameState.currentProfit = 0;
+            gameState.consecutiveLosses = 0;
+
+            if (gameState.tickInterval) {
+                clearInterval(gameState.tickInterval);
+                gameState.tickInterval = null;
+            }
+
+            unlockOptions();
+
+            document.getElementById('eventLog').innerHTML = '<div class="event">Business liquidated. Select new city and enterprise type.</div>';
+            document.getElementById('timeDisplay').textContent = 'Day';
+            updateDisplay();
+            drawGrid();
+            drawMiniMap();
+        }
+
+        function gameTick() {
+            if (!gameState.isPlaying) return;
+
+            gameState.tick++;
+
+            // Day/Night cycle
+            if (gameState.tick % DAY_NIGHT_CYCLE === 0) {
+                gameState.isDay = !gameState.isDay;
+                const timeMsg = gameState.isDay ? 'DAY: Business districts active' : 'NIGHT: Entertainment districts active';
+                logEvent(timeMsg);
+                document.getElementById('timeDisplay').textContent = gameState.isDay ? 'Day' : 'Night';
+                drawGrid();
+            }
+
+            // Random events
+            if (gameState.tick % EVENT_INTERVAL === 0) {
+                triggerRandomEvent();
+            }
+
+            // Clear temporary events
+            if (gameState.activeEvent && gameState.tick % EVENT_INTERVAL === Math.floor(EVENT_INTERVAL / 2)) {
+                if (gameState.activeEvent === 'newSubway') {
+                    gameState.tempHubs = [];
+                    logEvent('Infrastructure effect normalized.');
+                }
+                gameState.activeEvent = null;
+                drawGrid();
+                drawMiniMap();
+            }
+
+            // Calculate profit
+            if (gameState.playerPosition) {
+                const profit = calculateProfit(gameState.playerPosition.x, gameState.playerPosition.y);
+                gameState.money += profit.net;
+                gameState.currentProfit = profit.net;
+
+                if (profit.net < 0) {
+                    gameState.consecutiveLosses++;
+                    if (gameState.consecutiveLosses === 4) {
+                        logEvent('WARNING: 4 consecutive losses! Relocate or fail!', 'warning');
+                    }
+                } else {
+                    gameState.consecutiveLosses = 0;
+                }
+
+                document.getElementById('statusRent').textContent = '$' + profit.rent.toFixed(2) + '/tick';
+                document.getElementById('statusTraffic').textContent = profit.traffic.toFixed(1) + ' customers';
+                document.getElementById('statusProfit').textContent = (profit.net >= 0 ? '+' : '') + '$' + profit.net.toFixed(2) + '/tick';
+
+                if (gameState.money >= WIN_AMOUNT) {
+                    winGame();
+                } else if (gameState.money <= 0 || gameState.consecutiveLosses >= 10) {
+                    loseGame();
+                }
+            }
+
+            updateDisplay();
+        }
+
+        function triggerRandomEvent() {
+            const events = ['rainstorm', 'newSubway', 'rentHike', 'competition'];
+            const event = events[Math.floor(Math.random() * events.length)];
+
+            gameState.activeEvent = event;
+
+            switch(event) {
+                case 'rainstorm':
+                    logEvent('WEATHER: Customer range reduced 60%', 'warning');
+                    break;
+                case 'newSubway':
+                    const newX = Math.floor(Math.random() * 80) + 10;
+                    const newY = Math.floor(Math.random() * 80) + 10;
+                    gameState.tempHubs.push({
+                        x: newX,
+                        y: newY,
+                        name: 'Transit Hub',
+                        traffic: 50,
+                        spending: 1.1,
+                        color: '#ff00ff'
+                    });
+                    logEvent('INFRASTRUCTURE: New transit at (' + newX + ', ' + newY + ')', 'success');
+                    break;
+                case 'rentHike':
+                    logEvent('MARKET: Overhead costs +30% for this cycle', 'warning');
+                    break;
+                case 'competition':
+                    logEvent('COMPETITION: New rival opened nearby (-25% traffic)', 'warning');
+                    break;
+            }
+
+            drawGrid();
+            drawMiniMap();
+        }
+
+        function updateDisplay() {
+            const moneyDisplay = document.getElementById('moneyDisplay');
+            moneyDisplay.textContent = '$' + Math.floor(gameState.money).toLocaleString();
+            moneyDisplay.className = 'stat-value ' + (gameState.money >= STARTING_MONEY ? 'money-positive' : 'money-negative');
+
+            const profitDisplay = document.getElementById('profitDisplay');
+            if (gameState.playerPosition) {
+                const sign = gameState.currentProfit >= 0 ? '+' : '';
+                profitDisplay.textContent = sign + '$' + gameState.currentProfit.toFixed(2);
+                profitDisplay.style.color = gameState.currentProfit >= 0 ? '#4ade80' : '#f87171';
+            } else {
+                profitDisplay.textContent = 'N/A';
+                profitDisplay.style.color = '#ffd700';
+            }
+
+            if (gameState.playerPosition) {
+                const isManhattan = (gameState.selectedCity === 'NYC' && gameState.playerPosition.x >= 48 && gameState.playerPosition.x <= 52 && gameState.playerPosition.y >= 48 && gameState.playerPosition.y <= 52);
+                const locationText = isManhattan ? 'Manhattan' : '(' + gameState.playerPosition.x + ', ' + gameState.playerPosition.y + ')';
+                document.getElementById('locationDisplay').textContent = locationText;
+                document.getElementById('statusPosition').textContent = locationText;
+            } else {
+                document.getElementById('locationDisplay').textContent = 'None';
+                document.getElementById('statusPosition').textContent = 'Not established - click grid!';
+            }
+        }
+
+        function logEvent(message, type) {
+            const log = document.getElementById('eventLog');
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event ' + (type || '');
+            eventDiv.textContent = '[T' + gameState.tick + '] ' + message;
+            log.insertBefore(eventDiv, log.firstChild);
+
+            while (log.children.length > 25) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        function winGame() {
+            gameState.isPlaying = false;
+            if (gameState.tickInterval) {
+                clearInterval(gameState.tickInterval);
+            }
+
+            const business = BUSINESS_CLASSES[gameState.selectedClass];
+            const modal = document.getElementById('gameModal');
+            document.getElementById('modalTitle').textContent = 'PROFIT MAXIMIZATION ACHIEVED!';
+            document.getElementById('modalMessage').innerHTML = 
+                '<strong>You built a $100,000 enterprise!</strong><br><br>' +
+                '<strong>Business Model:</strong> ' + business.name + '<br>' +
+                '<strong>Market:</strong> ' + (gameState.selectedCity === 'NYC' ? 'New York City (Manhattan CBD)' : 'Tokyo (Polycentric)') + '<br>' +
+                '<strong>Final Location:</strong> (' + gameState.playerPosition.x + ', ' + gameState.playerPosition.y + ')<br>' +
+                '<strong>Operating Period:</strong> ' + gameState.tick + ' ticks<br><br>' +
+                '<div style="background:rgba(78,222,128,0.1);padding:10px;border-radius:5px;text-align:left;">' +
+                '<strong>Capitalism Simulator - Lessons Learned:</strong><br>' +
+                '1. Location determines profitability (Manhattan vs Outer Boroughs)<br>' +
+                '2. Overhead costs must match revenue potential<br>' +
+                '3. Market timing matters (day/night cycles in different districts)<br>' +
+                '4. Adapt to infrastructure changes<br>' +
+                '5. Different business models suit different locations' +
+                '</div>';
+            modal.style.display = 'flex';
+        }
+
+        function loseGame() {
+            gameState.isPlaying = false;
+            if (gameState.tickInterval) {
+                clearInterval(gameState.tickInterval);
+            }
+
+            const modal = document.getElementById('gameModal');
+            document.getElementById('modalTitle').textContent = 'BANKRUPTCY - Market Forces Prevail';
+
+            let reason = 'Operating costs exceeded revenue.';
+            let lesson = 'Study the market before establishing your business.';
+
+            if (gameState.playerPosition) {
+                const profit = calculateProfit(gameState.playerPosition.x, gameState.playerPosition.y);
+                if (profit.net < 0) {
+                    reason = 'Overhead ($' + profit.rent.toFixed(2) + ') exceeded revenue ($' + profit.gross.toFixed(2) + ').<br>' +
+                             'Unprofitable for ' + gameState.consecutiveLosses + ' consecutive ticks.';
+
+                    if (gameState.selectedCity === 'NYC') {
+                        const isManhattan = (gameState.playerPosition.x >= 48 && gameState.playerPosition.x <= 52 && gameState.playerPosition.y >= 48 && gameState.playerPosition.y <= 52);
+                        if (isManhattan) {
+                            lesson = '<strong>Market Lesson:</strong> Manhattan has premium rent. Only high-margin businesses (Luxury) can profit there. Street vendors get crushed by overhead.';
+                        } else {
+                            lesson = '<strong>Market Lesson:</strong> Outer boroughs have lower rent but less traffic. You need sufficient volume to cover even reduced overhead.';
+                        }
+                    } else {
+                        lesson = '<strong>Market Lesson:</strong> In Tokyo, match your business to the right district. Luxury needs Ginza (5x spending), tech needs Akihabara.';
+                    }
+                }
+            } else {
+                reason = 'No location selected. Time is money.';
+            }
+
+            document.getElementById('modalMessage').innerHTML = 
+                '<strong>Business Failed</strong><br><br>' +
+                '<strong>Cause:</strong> ' + reason + '<br><br>' +
+                '<div style="background:rgba(248,113,113,0.1);padding:10px;border-radius:5px;text-align:left;">' +
+                lesson +
+                '</div><br>' +
+                '<strong>Tip:</strong> Hover over tiles to analyze profit potential before committing!<br>' +
+                'Click Liquidate to try a different strategy.';
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('gameModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
